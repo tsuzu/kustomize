@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"sync"
 
 	"github.com/pkg/errors"
 
@@ -468,10 +469,61 @@ func (kt *KustTarget) accumulateComponents(
 	return ra, nil
 }
 
+var cache sync.Map
+
+func (kt *KustTarget) loadCache(ra *accumulator.ResAccumulator, ldr ifc.Loader, isComponent bool) (*accumulator.ResAccumulator, error) {
+	cacheKey := ldr.Root()
+
+	if !isComponent {
+		return nil, nil
+	}
+
+	value, ok := cache.Load(cacheKey)
+
+	if !ok {
+		return nil, nil
+	}
+
+	subRa := value.(*accumulator.ResAccumulator)
+
+	copiedRa := accumulator.MakeEmptyAccumulator()
+	copiedRa.AppendAll(subRa.ResMap().DeepCopy())
+	copiedRa.MergeVars(subRa.Vars())
+	copiedRa.MergeConfig(subRa.GetTransformerConfig())
+
+	err := ra.MergeAccumulator(copiedRa)
+	if err != nil {
+		return nil, errors.Wrapf(
+			err, "recursed merging from path '%s'", ldr.Root())
+	}
+
+	return ra, nil
+}
+
+func (kt *KustTarget) storeCache(ldr ifc.Loader, isComponent bool, subRa *accumulator.ResAccumulator) {
+	if isComponent {
+		return
+	}
+
+	copiedRa := accumulator.MakeEmptyAccumulator()
+	copiedRa.AppendAll(subRa.ResMap().DeepCopy())
+	copiedRa.MergeVars(subRa.Vars())
+	copiedRa.MergeConfig(subRa.GetTransformerConfig())
+
+	cache.Store(ldr.Root(), copiedRa)
+}
+
 func (kt *KustTarget) accumulateDirectory(
 	ra *accumulator.ResAccumulator, ldr ifc.Loader, isComponent bool) (*accumulator.ResAccumulator, error) {
 	defer ldr.Cleanup()
 	subKt := NewKustTarget(ldr, kt.validator, kt.rFactory, kt.pLdr)
+
+	if ra, err := kt.loadCache(ra, ldr, isComponent); err != nil {
+		return nil, err
+	} else if ra != nil {
+		return ra, nil
+	}
+
 	err := subKt.Load()
 	if err != nil {
 		return nil, errors.Wrapf(
@@ -512,6 +564,8 @@ func (kt *KustTarget) accumulateDirectory(
 		return nil, errors.Wrapf(
 			err, "recursed accumulation of path '%s'", ldr.Root())
 	}
+	kt.storeCache(ldr, isComponent, subRa)
+
 	err = ra.MergeAccumulator(subRa)
 	if err != nil {
 		return nil, errors.Wrapf(
