@@ -474,7 +474,7 @@ var cache sync.Map
 func (kt *KustTarget) loadCache(ra *accumulator.ResAccumulator, ldr ifc.Loader, isComponent bool) (*accumulator.ResAccumulator, error) {
 	cacheKey := ldr.Root()
 
-	if !isComponent {
+	if isComponent {
 		return nil, nil
 	}
 
