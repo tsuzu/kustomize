@@ -193,28 +193,28 @@ func (mgr *Manager) PushToReleaseWorkBranch(
 	gr := git.NewLoud(mgr.AbsPath(), doIt, localFlag)
 
 	if err := gr.AssureCleanWorkspace(); err != nil {
-		return err
+		return fmt.Errorf("workspace not clean: %w", err)
 	}
 	if err := gr.FetchRemote(mgr.remoteName); err != nil {
-		return err
+		return fmt.Errorf("failed to fetch remote: %w", err)
 	}
 	if err := gr.CheckoutMainBranch(); err != nil {
-		return err
+		return fmt.Errorf("failed to checkout main branch: %w", err)
 	}
 	if err := gr.MergeFromRemoteMain(mgr.remoteName); err != nil {
-		return err
+		return fmt.Errorf("failed to merge from remote main: %w", err)
 	}
 	if err := gr.AssureCleanWorkspace(); err != nil {
-		return err
+		return fmt.Errorf("workspace not clean: %w", err)
 	}
 	if err := gr.CheckoutReleaseBranch(mgr.remoteName, branch); err != nil {
-		return err
+		return fmt.Errorf("failed to checkout release branch: %w", err)
 	}
 	if err := gr.MergeFromRemoteMain(mgr.remoteName); err != nil {
-		return err
+		return fmt.Errorf("failed to merge from remote main: %w", err)
 	}
 	if err := gr.PushBranchToRemote(mgr.remoteName, branch); err != nil {
-		return err
+		return fmt.Errorf("failed to push branch to remote: %w", err)
 	}
 
 	return nil
@@ -247,7 +247,7 @@ func (mgr *Manager) Release(
 
 	relBranch, err := gr.GetCurrentBranch()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get current branch: %w", err)
 	}
 
 	expectedBranch := determineReleaseWorkBranch(newVersion)

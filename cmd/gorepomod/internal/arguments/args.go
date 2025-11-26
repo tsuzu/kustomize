@@ -194,7 +194,7 @@ func Parse() (result *Args, err error) {
 		}
 		result.version, err = semver.Parse(clArgs.next())
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to parse version: %w", err)
 		}
 		result.cmd = PreRelease
 	case cmdRelease:
@@ -207,7 +207,7 @@ func Parse() (result *Args, err error) {
 		}
 		result.version, err = semver.Parse(clArgs.next())
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to parse version: %w", err)
 		}
 		result.cmd = Release
 	case cmdUnRelease:
