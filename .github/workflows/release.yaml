@@ -3,11 +3,11 @@ name: release
 on:
   workflow_dispatch:
     inputs:
-      kustomize_tag:
-        description: 'Tag to release'
+      kustomize_version:
+        description: 'Tag to release kustomize'
         required: true
-      libs_tag:
-        description: 'Tag to release'
+      libs_version:
+        description: 'Tag to release libs'
         required: true
 
 permissions:
