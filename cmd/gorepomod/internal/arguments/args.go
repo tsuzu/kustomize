@@ -28,7 +28,7 @@ const (
 
 var (
 	commands = []string{
-		cmdPin, cmdUnPin, cmdTidy, cmdList, cmdRelease, cmdUnRelease, cmdDebug}
+		cmdPin, cmdUnPin, cmdTidy, cmdList, cmdPreRelease, cmdRelease, cmdUnRelease, cmdDebug, cmdNext}
 
 	// TODO: make this a PATH-like flag
 	// e.g.: --excludes ".git:.idea:site:docs"
