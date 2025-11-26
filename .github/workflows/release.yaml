@@ -25,7 +25,7 @@ jobs:
         git config --global user.email 'actions@github.com'
         git config --global push.default current
 
-        go tool gorepomod pre-release "${{ github.event.inputs.kustomize_version }}"
+        go tool gorepomod pre-release --local "${{ github.event.inputs.kustomize_version }}"
 
     - name: Set up Go 1.x
       uses: actions/setup-go@v6
@@ -36,7 +36,7 @@ jobs:
     - name: Release kyaml
       run: |
         make IS_LOCAL=true verify-kustomize-repo
-        go tool gorepomod release kyaml ${{ github.event.inputs.libs_version }} --doIt
+        go tool gorepomod release --local kyaml ${{ github.event.inputs.libs_version }} --doIt
         ./releasing/create-release.sh kyaml/${{ github.event.inputs.libs_version }}
         go tool gorepomod pin kyaml --doIt
         git commit -m "Update kyaml to ${{ github.event.inputs.libs_version }}"
@@ -45,7 +45,7 @@ jobs:
     - name: Release cmd/config
       run: |
         make IS_LOCAL=true verify-kustomize-repo
-        go tool gorepomod release cmd/config ${{ github.event.inputs.libs_version }} --doIt
+        go tool gorepomod release --local cmd/config ${{ github.event.inputs.libs_version }} --doIt
         ./releasing/create-release.sh cmd/config/${{ github.event.inputs.libs_version }}
         go tool gorepomod pin cmd/config --doIt
         git commit -m "Update cmd/config to ${{ github.event.inputs.libs_version }}"
@@ -54,7 +54,7 @@ jobs:
     - name: Release api
       run: |
         make IS_LOCAL=true verify-kustomize-repo
-        go tool gorepomod release api ${{ github.event.inputs.libs_version }} --doIt
+        go tool gorepomod release --local api ${{ github.event.inputs.libs_version }} --doIt
         ./releasing/create-release.sh api/${{ github.event.inputs.libs_version }}
         go tool gorepomod pin api --doIt
         git commit -m "Update api to ${{ github.event.inputs.libs_version }}"
@@ -63,7 +63,7 @@ jobs:
     - name: Release kustomize
       run: |
         make IS_LOCAL=true verify-kustomize-repo
-        go tool gorepomod release kustomize ${{ github.event.inputs.kustomize_version }} --doIt
+        go tool gorepomod release --local kustomize ${{ github.event.inputs.kustomize_version }} --doIt
         ./releasing/create-release.sh kustomize/${{ github.event.inputs.kustomize_version }}
 
     - name: Push changes
