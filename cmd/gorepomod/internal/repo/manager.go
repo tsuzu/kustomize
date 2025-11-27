@@ -250,13 +250,6 @@ func (mgr *Manager) Release(
 		return fmt.Errorf("failed to get current branch: %w", err)
 	}
 
-	expectedBranch := determineReleaseWorkBranch(newVersion)
-	if relBranch != expectedBranch {
-		return fmt.Errorf(
-			"current branch is %q, want %q",
-			relBranch, expectedBranch)
-	}
-
 	relTag := determineTag(target, newVersion)
 
 	fmt.Printf(
