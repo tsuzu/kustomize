@@ -40,7 +40,7 @@ jobs:
         make IS_LOCAL=true verify-kustomize-repo
         go tool gorepomod release --local kyaml ${{ github.event.inputs.libs_version }} --doIt
         ./releasing/create-release.sh kyaml/${{ github.event.inputs.libs_version }}
-        go tool gorepomod pin kyaml --doIt
+        go tool gorepomod pin kyaml --local --doIt
         git commit -m "Update kyaml to ${{ github.event.inputs.libs_version }}"
         git push --force
 
@@ -51,7 +51,7 @@ jobs:
         make IS_LOCAL=true verify-kustomize-repo
         go tool gorepomod release --local cmd/config ${{ github.event.inputs.libs_version }} --doIt
         ./releasing/create-release.sh cmd/config/${{ github.event.inputs.libs_version }}
-        go tool gorepomod pin cmd/config --doIt
+        go tool gorepomod pin --local cmd/config --doIt
         git commit -m "Update cmd/config to ${{ github.event.inputs.libs_version }}"
         git push --force
 
@@ -62,7 +62,7 @@ jobs:
         make IS_LOCAL=true verify-kustomize-repo
         go tool gorepomod release --local api ${{ github.event.inputs.libs_version }} --doIt
         ./releasing/create-release.sh api/${{ github.event.inputs.libs_version }}
-        go tool gorepomod pin api --doIt
+        go tool gorepomod pin --local api --doIt
         git commit -m "Update api to ${{ github.event.inputs.libs_version }}"
         git push --force
 
