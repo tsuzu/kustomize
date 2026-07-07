@@ -353,6 +353,7 @@ fi
 
 gorepomod_release kustomize "${kustomize_bump}"
 
+run git checkout "${release_branch}"
 gorepomod_unpin api
 gorepomod_unpin cmd/config
 gorepomod_unpin kyaml

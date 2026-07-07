@@ -353,6 +353,7 @@ Undraft the release on the [kustomize repo release page]:
 Go back into development mode, where all modules depend on in-repo code:
 
 ```
+git checkout "$releaseBranch"
 go tool gorepomod unpin api --doIt && go tool gorepomod unpin cmd/config --doIt && go tool gorepomod unpin kyaml --doIt
 ```
 
