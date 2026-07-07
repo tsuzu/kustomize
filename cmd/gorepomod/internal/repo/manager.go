@@ -5,9 +5,7 @@ package repo
 
 import (
 	"fmt"
-	"os"
 	"strconv"
-	"strings"
 
 	"sigs.k8s.io/kustomize/cmd/gorepomod/internal/edit"
 	"sigs.k8s.io/kustomize/cmd/gorepomod/internal/git"
@@ -82,16 +80,6 @@ func (mgr *Manager) hasUnPinnedDeps(m misc.LaModule) string {
 }
 
 func (mgr *Manager) List() error {
-	// Auto-update local tags
-	gr := git.NewQuiet(mgr.AbsPath(), false, false)
-	for _, module := range mgr.modules {
-		releaseBranch := fmt.Sprintf("release-%s", module.ShortName())
-		_, err := gr.GetLatestTag(releaseBranch)
-		if err != nil {
-			return fmt.Errorf("failed getting latest tags for %s", module)
-		}
-	}
-
 	fmt.Printf("   src path: %s\n", mgr.dg.SrcPath())
 	fmt.Printf("  repo path: %s\n", mgr.RepoPath())
 	fmt.Printf("     remote: %s\n", mgr.remoteName)
@@ -115,16 +103,18 @@ func (mgr *Manager) List() error {
 	})
 }
 
-func determineReleaseWorkBranch(v semver.SemVer) string {
-	return fmt.Sprintf("release-%s", v.BranchLabel())
-}
-
-func determineTag(
-	m misc.LaModule, v semver.SemVer) string {
+func determineTag(m misc.LaModule, v semver.SemVer) string {
 	if m.ShortName() == misc.ModuleAtTop {
 		return v.String()
 	}
 	return string(m.ShortName()) + "/" + v.String()
+}
+
+func determineReleaseBranch(releaseBranch string) (string, error) {
+	if releaseBranch == "" {
+		return "", fmt.Errorf("%s must be specified for release", "--release-branch")
+	}
+	return releaseBranch, nil
 }
 
 func (mgr *Manager) Debug(_ misc.LaModule, doIt bool, localFlag bool) error {
@@ -132,106 +122,20 @@ func (mgr *Manager) Debug(_ misc.LaModule, doIt bool, localFlag bool) error {
 	return gr.Debug(mgr.remoteName)
 }
 
-// DetermineNextVersion calculates the next version to use
-// when releasing multiple modules at once.
-// It returns the highest version among the targets.
-func (mgr *Manager) DetermineNextVersion(
-	targets []misc.LaModule, bump semver.SvBump) (semver.SemVer, error) {
-	if len(targets) == 0 {
-		return semver.Zero(), fmt.Errorf("no targets specified")
-	}
-
-	latestVer := semver.Zero()
-	for _, target := range targets {
-		newVersion := target.VersionLocal().Bump(bump)
-
-		if err := mgr.verifyMajorVersion(target.ModulePath(), newVersion); err != nil {
-			return semver.Zero(), err
-		}
-
-		fmt.Fprintf(
-			os.Stderr,
-			"Releasing %s, stepping from %s to %s\n",
-			target.ShortName(), target.VersionLocal(), newVersion)
-
-		if latestVer.LessThan(newVersion) {
-			latestVer = newVersion
-		}
-	}
-
-	return latestVer, nil
-}
-
-func (mgr *Manager) verifyMajorVersion(modulePath string, nextVersion semver.SemVer) error {
-	nextMajor := nextVersion.Major()
-
-	// For v0 and v1, /vN suffix isn't necessary.
-	if nextMajor == 0 || nextMajor == 1 {
-		return nil
-	}
-
-	suffix := fmt.Sprintf("/v%d", nextMajor)
-
-	if !strings.HasSuffix(modulePath, suffix) {
-		return fmt.Errorf("module %s should end with %s", modulePath, suffix)
-	}
-
-	return nil
-}
-
-// DetermineNextVersion calculates the next version to use
-// when releasing multiple modules at once.
-// It returns the highest version among the targets.
-func (mgr *Manager) PushToReleaseWorkBranch(
-	version semver.SemVer, doIt bool, localFlag bool) error {
-	branch := determineReleaseWorkBranch(version)
-
-	fmt.Printf(
-		"Pushing to release work branch %q for version %s\n",
-		branch, version)
-
-	gr := git.NewLoud(mgr.AbsPath(), doIt, localFlag)
-
-	if err := gr.AssureCleanWorkspace(); err != nil {
-		return fmt.Errorf("workspace not clean: %w", err)
-	}
-	if err := gr.FetchRemote(mgr.remoteName); err != nil {
-		return fmt.Errorf("failed to fetch remote: %w", err)
-	}
-	if err := gr.CheckoutMainBranch(); err != nil {
-		return fmt.Errorf("failed to checkout main branch: %w", err)
-	}
-	if err := gr.MergeFromRemoteMain(mgr.remoteName); err != nil {
-		return fmt.Errorf("failed to merge from remote main: %w", err)
-	}
-	if err := gr.AssureCleanWorkspace(); err != nil {
-		return fmt.Errorf("workspace not clean: %w", err)
-	}
-	if err := gr.CheckoutReleaseBranch(mgr.remoteName, branch); err != nil {
-		return fmt.Errorf("failed to checkout release branch: %w", err)
-	}
-	if err := gr.MergeFromRemoteMain(mgr.remoteName); err != nil {
-		return fmt.Errorf("failed to merge from remote main: %w", err)
-	}
-	if err := gr.PushBranchToRemote(mgr.remoteName, branch); err != nil {
-		return fmt.Errorf("failed to push branch to remote: %w", err)
-	}
-
-	return nil
-}
-
 // Release supports a gitlab flow style release process.
 //
 // * All development happens in the branch named "master".
 // * Each minor release gets its own branch.
 func (mgr *Manager) Release(
-	target misc.LaModule, newVersion semver.SemVer, doIt bool, localFlag bool) error {
+	target misc.LaModule, bump semver.SvBump, releaseBranch string, doIt bool, localFlag bool) error {
 	if reps := target.GetDisallowedReplacements(
 		mgr.allowedReplacements); len(reps) > 0 {
 		return fmt.Errorf(
 			"to release %q, first pin these replacements: %v",
 			target.ShortName(), reps)
 	}
+
+	newVersion := target.VersionLocal().Bump(bump)
 
 	if newVersion.Equals(target.VersionRemote()) {
 		return fmt.Errorf(
@@ -245,11 +149,10 @@ func (mgr *Manager) Release(
 
 	gr := git.NewLoud(mgr.AbsPath(), doIt, localFlag)
 
-	relBranch, err := gr.GetCurrentBranch()
+	relBranch, err := determineReleaseBranch(releaseBranch)
 	if err != nil {
-		return fmt.Errorf("failed to get current branch: %w", err)
+		return err
 	}
-
 	relTag := determineTag(target, newVersion)
 
 	fmt.Printf(
@@ -262,13 +165,31 @@ func (mgr *Manager) Release(
 	if err := gr.FetchRemote(mgr.remoteName); err != nil {
 		return err
 	}
-	if err := gr.MergeFromRemoteBranch(mgr.remoteName, relBranch); err != nil {
+	if err := gr.CheckoutMainBranch(); err != nil {
+		return err
+	}
+	if err := gr.MergeFromRemoteMain(mgr.remoteName); err != nil {
+		return err
+	}
+	if err := gr.AssureCleanWorkspace(); err != nil {
+		return err
+	}
+	if err := gr.CheckoutReleaseBranch(mgr.remoteName, relBranch); err != nil {
+		return err
+	}
+	if err := gr.MergeFromRemoteMain(mgr.remoteName); err != nil {
+		return err
+	}
+	if err := gr.PushBranchToRemote(mgr.remoteName, relBranch); err != nil {
 		return err
 	}
 	if err := gr.CreateLocalReleaseTag(relTag, relBranch); err != nil {
 		return err
 	}
 	if err := gr.PushTagToRemote(mgr.remoteName, relTag); err != nil {
+		return err
+	}
+	if err := gr.CheckoutMainBranch(); err != nil {
 		return err
 	}
 	return nil
