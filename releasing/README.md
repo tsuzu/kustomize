@@ -64,6 +64,33 @@ Thus, do `kyaml` first, then `cmd/config`, etc.
 
 **⚠️ IMPORTANT:** The full release sequence should always be completed unless there is a really compelling reason not to AND the new release is fully backwards compatible with the latest released versions of our modules that depend on it (this is not detected by our CI, as we develop against the head versions of all modules). If we end up with a situation where the latest kyaml is not compatible with the latest api, for example, it causes end user confusion, particularly when automation attempts to upgrade kyaml for them.
 
+## Automated single-branch flow
+
+If you want to keep the release work on one branch, use [`release-one-branch.sh`](./release-one-branch.sh).
+
+This script automates the mechanical steps that are otherwise repeated in the sections below:
+
+- creates a single branch named `release-vX.Y.Z`
+- uses `gorepomod release` for the actual tags
+- uses the same bump for `kyaml`, `cmd/config`, and `api`, and verifies that this yields the same target version
+- derives `release-vX.Y.Z` from the computed `kustomize` version
+- chooses the remote the same way as `gorepomod`: `upstream` first, then `origin`
+- pins inter-module dependencies between those tags
+- creates the final single PR from the release branch after `unpin + LATEST_RELEASE`
+
+Example:
+
+```bash
+releasing/release-one-branch.sh \
+  --module-bump patch \
+  --kustomize-bump patch \
+  --do-it
+```
+
+The script does **not** decide the semver bumps for you, review changelogs, or perform the major-version module path updates described later in this document. For major `kustomize` releases, make those source changes before running the script.
+
+For a manual single-branch release, pass `--release-branch release-vX.Y.Z` to each `gorepomod release ...` command so that all tags land on the same branch. The single PR is created only after the final `unpin + LATEST_RELEASE` step, and its head is that same release branch.
+
 ## Prep work
 
 ### ⚠️ IMPORTANT: Check for [release-blocking issues](https://github.com/kubernetes-sigs/kustomize/issues?q=label%3Arelease-blocker+is%3Aopen)
@@ -128,7 +155,8 @@ kyaml has no intra-repo deps, so if the tests pass, it can just be released.
 The default increment is a new patch version.
 
 ```
-go tool gorepomod release kyaml [patch|minor|major] --doIt
+releaseBranch=release-vX.Y.Z   # EDIT THIS!
+go tool gorepomod release kyaml [patch|minor|major] --release-branch "$releaseBranch" --doIt
 ```
 
 Note the version:
@@ -153,22 +181,17 @@ Undraft the release on the [kustomize repo release page]:
 go tool gorepomod pin kyaml --doIt
 ```
 
-Create the PR:
+Commit the pin update on the release branch:
 
 ```
-createBranch pinToKyaml "Update kyaml to $versionKyaml"
+git commit -am "Update kyaml to $versionKyaml"
+git push upstream "$releaseBranch"
 ```
 
-```
-createPr
-```
-
-Review the resulting PR and get a collaborator to LGTM. Wait for CI to pass.
-
-Once the PR merges, get back on master and do paranoia test:
+Run paranoia test again:
 
 ```
-refreshMaster && testKustomizeRepo
+testKustomizeRepo
 ```
 
 While you're waiting for the tests, review the commit log:
@@ -182,7 +205,7 @@ Based on the changes to be included in this release, decide whether a patch, min
 #### Release it
 
 ```
-go tool gorepomod release cmd/config [patch|minor|major] --doIt
+go tool gorepomod release cmd/config [patch|minor|major] --release-branch "$releaseBranch" --doIt
 ```
 
 Note the version:
@@ -203,24 +226,29 @@ Undraft the release on the [kustomize repo release page]:
 
 This is the kustomize API, used by the kustomize CLI.
 
+Switch back to the release branch before preparing the next release:
+
+```
+git checkout "$releaseBranch"
+```
+
 #### Pin to the new cmd/config
 
 ```
 go tool gorepomod pin cmd/config --doIt
 ```
 
-Create the PR:
+Commit the pin update on the release branch:
 
 ```
-createBranch pinToCmdConfig "Update cmd/config to $versionCmdConfig" && createPr
+git commit -am "Update cmd/config to $versionCmdConfig"
+git push upstream "$releaseBranch"
 ```
 
-Review the resulting PR and get a collaborator to LGTM. Wait for CI to pass.
-
-Once the PR merges, get back on master and do paranoia test:
+Run paranoia test again:
 
 ```
-refreshMaster && testKustomizeRepo
+testKustomizeRepo
 ```
 
 While you're waiting for the tests, review the commit log:
@@ -234,7 +262,7 @@ Based on the changes to be included in this release, decide whether a patch, min
 #### Release it
 
 ```
-go tool gorepomod release api [patch|minor|major] --doIt
+go tool gorepomod release api [patch|minor|major] --release-branch "$releaseBranch" --doIt
 ```
 
 Note the version:
@@ -267,18 +295,17 @@ Example: https://github.com/kubernetes-sigs/kustomize/pull/5021
 go tool gorepomod pin api --doIt
 ```
 
-Create the PR:
+Commit the pin update on the release branch:
 
 ```
-createBranch pinToApi "Update api to $versionApi" && createPr
+git commit -am "Update api to $versionApi"
+git push upstream "$releaseBranch"
 ```
 
-Review the resulting PR and get a collaborator to LGTM. Wait for CI to pass.
-
-Once the PR merges, get back on master and do paranoia test:
+Run paranoia test again:
 
 ```
-refreshMaster && testKustomizeRepo
+testKustomizeRepo
 ```
 
 While you're waiting for the tests, review the commit log:
@@ -292,7 +319,13 @@ Based on the changes to be included in this release, decide whether a patch, min
 #### Release it
 
 ```
-go tool gorepomod release kustomize [patch|minor|major] --doIt
+go tool gorepomod release kustomize [patch|minor|major] --release-branch "$releaseBranch" --doIt
+```
+
+Note the version:
+
+```
+versionKustomize=v5.8.2 # EDIT THIS!
 ```
 
 See the process of the [build history of GitHub Actions job].
@@ -320,6 +353,7 @@ Undraft the release on the [kustomize repo release page]:
 Go back into development mode, where all modules depend on in-repo code:
 
 ```
+git checkout "$releaseBranch"
 go tool gorepomod unpin api --doIt && go tool gorepomod unpin cmd/config --doIt && go tool gorepomod unpin kyaml --doIt
 ```
 
@@ -329,13 +363,34 @@ Edit the `prow-presubmit-target` in the [Makefile]
 to test examples against your new release. For example:
 
 ```
-sed -i "" "s/LATEST_RELEASE=.*/LATEST_RELEASE=v5.0.0/" Makefile
+python3 - <<'PY'
+from pathlib import Path
+import re
+
+path = Path("Makefile")
+text = path.read_text()
+updated = re.sub(r"^LATEST_RELEASE=.*$", "LATEST_RELEASE=v5.0.0", text, count=1, flags=re.MULTILINE)
+path.write_text(updated)
+PY
 ```
 
-Create the PR:
+Create the final PR:
 
 ```
-createBranch unpinEverything "Back to development mode; unpin the modules" && createPr
+python3 - "$versionKustomize" <<'PY'
+from pathlib import Path
+import re
+import sys
+
+version = sys.argv[1]
+path = Path("Makefile")
+text = path.read_text()
+updated = re.sub(r"^LATEST_RELEASE=.*$", f"LATEST_RELEASE={version}", text, count=1, flags=re.MULTILINE)
+path.write_text(updated)
+PY
+git commit -am "Back to development mode after $versionKustomize"
+git push upstream "$releaseBranch"
+gh pr create --base master --head "$releaseBranch" --title "Back to development mode after $versionKustomize"
 ```
 
 Review the resulting PR and get a collaborator to LGTM. Wait for CI to pass.
