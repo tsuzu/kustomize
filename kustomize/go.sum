@@ -118,12 +118,6 @@ k8s.io/kube-openapi v0.0.0-20260502001324-b7f5293f4787 h1:kHv8PETbPIVHfqKBYwTNNS
 k8s.io/kube-openapi v0.0.0-20260502001324-b7f5293f4787/go.mod h1:Cyq7UE0QtGe+Zo+/6XFrxiS4Mq0tLyQEONkFzSkfp9o=
 sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd h1:EDPBXCAspyGV4jQlpZSudPeMmr1bNJefnuqLsRAsHZo=
 sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd/go.mod h1:B8JuhiUyNFVKdsE8h686QcCxMaH6HrOAZj4vswFpcB0=
-sigs.k8s.io/kustomize/api v0.22.4 h1:beZvoPdOSppygHLBRDqmPYsNIDd1QryKxcT3Aa8tguA=
-sigs.k8s.io/kustomize/api v0.22.4/go.mod h1:BAE4AGKmDmmwYCKK+rZGs/EH1hQAvE3B6HT/0kAGzBg=
-sigs.k8s.io/kustomize/cmd/config v0.22.4 h1:9xC63sPTXPeZoVg7BG0jfs6+hCM+7BdqVOGrUQxRBGM=
-sigs.k8s.io/kustomize/cmd/config v0.22.4/go.mod h1:jOsOol2DylHj/b31q/bvkWkuQd3dR2/6G3eSvlpnzbc=
-sigs.k8s.io/kustomize/kyaml v0.22.4 h1:Ka44I5y6Wdx0hGR4ThMtENb5epkdC+AxffMxiEni7F4=
-sigs.k8s.io/kustomize/kyaml v0.22.4/go.mod h1:mVmCqIoIgXjmb+TGIqouYveOFIKinfQAcy7P9LbXJks=
 sigs.k8s.io/randfill v1.0.0 h1:JfjMILfT8A6RbawdsK2JXGBR5AQVfd+9TbzrlneTyrU=
 sigs.k8s.io/randfill v1.0.0/go.mod h1:XeLlZ/jmk4i1HRopwe7/aU3H5n1zNUcX6TM94b3QxOY=
 sigs.k8s.io/yaml v1.5.0 h1:M10b2U7aEUY6hRtU870n2VTPgR5RZiL/I6Lcc2F4NUQ=
