@@ -19,6 +19,8 @@ kustomize_bump=""
 module_version=""
 kustomize_version=""
 gorepomod_bin=""
+github_repo=""
+final_pr_url=""
 
 usage() {
   cat <<'EOF'
@@ -66,6 +68,33 @@ run() {
 
 require_cmd() {
   command -v "$1" >/dev/null 2>&1 || fail "required command not found: $1"
+}
+
+github_repo_from_remote() {
+  local remote_url=$1
+  local repo_path
+  case "${remote_url}" in
+    https://github.com/*)
+      repo_path="${remote_url#https://github.com/}"
+      ;;
+    git@github.com:*)
+      repo_path="${remote_url#git@github.com:}"
+      ;;
+    ssh://git@github.com/*)
+      repo_path="${remote_url#ssh://git@github.com/}"
+      ;;
+    *)
+      fail "unable to determine GitHub repository from remote URL: ${remote_url}"
+      ;;
+  esac
+  repo_path="${repo_path%.git}"
+  [[ "${repo_path}" == */* ]] || fail "unable to determine GitHub repository from remote URL: ${remote_url}"
+  printf '%s' "${repo_path}"
+}
+
+tag_url_path() {
+  local tag=$1
+  printf '%s' "${tag//\//%2F}"
 }
 
 pick_default_remote() {
@@ -134,12 +163,14 @@ restore_go_work_sum_if_needed() {
   if git diff --quiet -- go.work.sum; then
     return
   fi
-  run git restore --worktree go.work.sum
+  log "+ git restore --worktree go.work.sum"
+  git restore --worktree go.work.sum
 }
 
 build_gorepomod_binary() {
   gorepomod_bin="$(mktemp "${TMPDIR:-/tmp}/gorepomod.XXXXXX")"
-  run go build -o "${gorepomod_bin}" ./cmd/gorepomod
+  log "+ go build -o ${gorepomod_bin} ./cmd/gorepomod"
+  go build -o "${gorepomod_bin}" ./cmd/gorepomod
   restore_go_work_sum_if_needed
 }
 
@@ -227,12 +258,76 @@ EOF
 )
   if [[ "${do_it}" -eq 1 ]]; then
     require_cmd gh
+    final_pr_url="$(gh pr create \
+      --repo "${github_repo}" \
+      --base "${base_branch}" \
+      --head "${release_branch}" \
+      --title "${title}" \
+      --body "${body}")"
+    printf '%s\n' "${final_pr_url}"
+    return
   fi
   run gh pr create \
+    --repo "${github_repo:-OWNER/REPO}" \
     --base "${base_branch}" \
     --head "${release_branch}" \
     --title "${title}" \
     --body "${body}"
+}
+
+release_action_url() {
+  local tag=$1
+  local url=""
+  if [[ "${do_it}" -ne 1 ]]; then
+    printf 'would wait for release workflow run for %s' "${tag}"
+    return
+  fi
+
+  log "waiting for release workflow run for ${tag}"
+  for _ in {1..30}; do
+    url="$(gh run list \
+      --repo "${github_repo}" \
+      --workflow release.yaml \
+      --event push \
+      --branch "${tag}" \
+      --limit 1 \
+      --json url \
+      --jq '.[0].url // ""')"
+    if [[ -n "${url}" ]]; then
+      printf '%s' "${url}"
+      return
+    fi
+    sleep 5
+  done
+
+  fail "release workflow run was not found for tag: ${tag}"
+}
+
+print_postflight_summary() {
+  local repo_url="https://github.com/${github_repo}"
+  local kyaml_tag="kyaml/${module_version}"
+  local cmd_config_tag="cmd/config/${module_version}"
+  local api_tag="api/${module_version}"
+  local kustomize_tag="kustomize/${kustomize_version}"
+
+  log "release branch automation completed"
+  cat <<EOF
+
+Next steps:
+  PR: ${final_pr_url:-${repo_url}/pulls}
+
+  Watch release workflows:
+    ${kyaml_tag}: $(release_action_url "${kyaml_tag}")
+    ${cmd_config_tag}: $(release_action_url "${cmd_config_tag}")
+    ${api_tag}: $(release_action_url "${api_tag}")
+    ${kustomize_tag}: $(release_action_url "${kustomize_tag}")
+
+  Review and undraft GitHub Releases after the workflows finish:
+    ${kyaml_tag}: ${repo_url}/releases/tag/$(tag_url_path "${kyaml_tag}")
+    ${cmd_config_tag}: ${repo_url}/releases/tag/$(tag_url_path "${cmd_config_tag}")
+    ${api_tag}: ${repo_url}/releases/tag/$(tag_url_path "${api_tag}")
+    ${kustomize_tag}: ${repo_url}/releases/tag/$(tag_url_path "${kustomize_tag}")
+EOF
 }
 
 while [[ $# -gt 0 ]]; do
@@ -290,7 +385,6 @@ require_cmd git
 require_cmd go
 
 cd "${repo_root}"
-build_gorepomod_binary
 
 if [[ -z "${push_remote}" && -z "${sync_remote}" ]]; then
   push_remote="$(pick_default_remote)"
@@ -307,7 +401,10 @@ fi
 
 git remote get-url "${push_remote}" >/dev/null 2>&1 || fail "remote not found: ${push_remote}"
 git remote get-url "${sync_remote}" >/dev/null 2>&1 || fail "remote not found: ${sync_remote}"
+github_repo="$(github_repo_from_remote "$(git remote get-url "${push_remote}")")"
 
+ensure_clean_workspace
+build_gorepomod_binary
 ensure_clean_workspace
 
 local_kyaml_version="$(module_local_version kyaml)"
@@ -337,6 +434,7 @@ log "base branch: ${base_branch}"
 log "release branch: ${release_branch}"
 log "sync remote: ${sync_remote}"
 log "push remote: ${push_remote}"
+log "GitHub repo: ${github_repo}"
 log "module bump: ${module_bump} -> ${module_version}"
 log "kustomize bump: ${kustomize_bump} -> ${kustomize_version}"
 
@@ -382,4 +480,4 @@ fi
 
 create_final_pr
 
-log "release branch automation completed"
+print_postflight_summary
