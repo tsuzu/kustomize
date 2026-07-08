@@ -18,6 +18,7 @@ module_bump=""
 kustomize_bump=""
 module_version=""
 kustomize_version=""
+gorepomod_bin=""
 
 usage() {
   cat <<'EOF'
@@ -118,7 +119,7 @@ bump_version() {
 module_local_version() {
   local module=$1
   local value
-  value="$(go run ./cmd/gorepomod list --local | awk -v module="${module}" '$1 == module { print $2; exit }')"
+  value="$("${gorepomod_bin}" list --local | awk -v module="${module}" '$1 == module { print $2; exit }')"
   [[ -n "${value}" ]] || fail "unable to determine local version for module: ${module}"
   printf '%s' "${value}"
 }
@@ -136,6 +137,12 @@ restore_go_work_sum_if_needed() {
   run git restore --worktree go.work.sum
 }
 
+build_gorepomod_binary() {
+  gorepomod_bin="$(mktemp "${TMPDIR:-/tmp}/gorepomod.XXXXXX")"
+  run go build -o "${gorepomod_bin}" ./cmd/gorepomod
+  restore_go_work_sum_if_needed
+}
+
 ensure_branch_absent_on_remote() {
   local branch=$1
   if git ls-remote --exit-code --heads "${push_remote}" "${branch}" >/dev/null 2>&1; then
@@ -147,9 +154,9 @@ gorepomod_release() {
   local module=$1
   local bump=$2
   if [[ "${do_it}" -eq 1 ]]; then
-    GOFLAGS='' go run ./cmd/gorepomod release "${module}" "${bump}" --release-branch "${release_branch}" --doIt --local
+    "${gorepomod_bin}" release "${module}" "${bump}" --release-branch "${release_branch}" --doIt --local
   else
-    log "+ go run ./cmd/gorepomod release ${module} ${bump} --release-branch ${release_branch} --doIt --local"
+    log "+ ${gorepomod_bin:-<gorepomod>} release ${module} ${bump} --release-branch ${release_branch} --doIt --local"
   fi
 }
 
@@ -157,18 +164,18 @@ gorepomod_pin() {
   local module=$1
   local version=$2
   if [[ "${do_it}" -eq 1 ]]; then
-    GOFLAGS='' go run ./cmd/gorepomod pin "${module}" "${version}" --doIt --local
+    "${gorepomod_bin}" pin "${module}" "${version}" --doIt --local
   else
-    log "+ go run ./cmd/gorepomod pin ${module} ${version} --doIt --local"
+    log "+ ${gorepomod_bin:-<gorepomod>} pin ${module} ${version} --doIt --local"
   fi
 }
 
 gorepomod_unpin() {
   local module=$1
   if [[ "${do_it}" -eq 1 ]]; then
-    GOFLAGS='' go run ./cmd/gorepomod unpin "${module}" --doIt --local
+    "${gorepomod_bin}" unpin "${module}" --doIt --local
   else
-    log "+ go run ./cmd/gorepomod unpin ${module} --doIt --local"
+    log "+ ${gorepomod_bin:-<gorepomod>} unpin ${module} --doIt --local"
   fi
 }
 
@@ -283,6 +290,7 @@ require_cmd git
 require_cmd go
 
 cd "${repo_root}"
+build_gorepomod_binary
 
 if [[ -z "${push_remote}" && -z "${sync_remote}" ]]; then
   push_remote="$(pick_default_remote)"
