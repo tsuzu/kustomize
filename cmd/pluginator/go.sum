@@ -113,6 +113,8 @@ k8s.io/utils v0.0.0-20240711033017-18e509b52bc8 h1:pUdcCO1Lk/tbT5ztQWOBi5HBgbBP1
 k8s.io/utils v0.0.0-20240711033017-18e509b52bc8/go.mod h1:OLgZIPagt7ERELqWJFomSt595RzquPNLL48iOWgYOg0=
 sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd h1:EDPBXCAspyGV4jQlpZSudPeMmr1bNJefnuqLsRAsHZo=
 sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd/go.mod h1:B8JuhiUyNFVKdsE8h686QcCxMaH6HrOAZj4vswFpcB0=
+sigs.k8s.io/kustomize/api v0.22.4 h1:beZvoPdOSppygHLBRDqmPYsNIDd1QryKxcT3Aa8tguA=
+sigs.k8s.io/kustomize/api v0.22.4/go.mod h1:BAE4AGKmDmmwYCKK+rZGs/EH1hQAvE3B6HT/0kAGzBg=
 sigs.k8s.io/kustomize/kyaml v0.22.4 h1:Ka44I5y6Wdx0hGR4ThMtENb5epkdC+AxffMxiEni7F4=
 sigs.k8s.io/kustomize/kyaml v0.22.4/go.mod h1:mVmCqIoIgXjmb+TGIqouYveOFIKinfQAcy7P9LbXJks=
 sigs.k8s.io/randfill v1.0.0 h1:JfjMILfT8A6RbawdsK2JXGBR5AQVfd+9TbzrlneTyrU=
