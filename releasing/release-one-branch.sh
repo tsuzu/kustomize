@@ -129,6 +129,13 @@ ensure_clean_workspace() {
   [[ -z "${status}" ]] || fail "workspace must be clean before running the release automation"
 }
 
+restore_go_work_sum_if_needed() {
+  if git diff --quiet -- go.work.sum; then
+    return
+  fi
+  run git restore --worktree go.work.sum
+}
+
 ensure_branch_absent_on_remote() {
   local branch=$1
   if git ls-remote --exit-code --heads "${push_remote}" "${branch}" >/dev/null 2>&1; then
@@ -304,6 +311,7 @@ target_kyaml_version="$(bump_version "${local_kyaml_version}" "${module_bump}")"
 target_cmd_config_version="$(bump_version "${local_cmd_config_version}" "${module_bump}")"
 target_api_version="$(bump_version "${local_api_version}" "${module_bump}")"
 kustomize_version="$(bump_version "${local_kustomize_version}" "${kustomize_bump}")"
+restore_go_work_sum_if_needed
 
 if [[ "${target_kyaml_version}" != "${target_cmd_config_version}" || "${target_kyaml_version}" != "${target_api_version}" ]]; then
   fail "requested module bump does not produce a shared version: kyaml=${target_kyaml_version}, cmd/config=${target_cmd_config_version}, api=${target_api_version}"
