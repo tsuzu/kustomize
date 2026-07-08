@@ -5,7 +5,7 @@ go 1.25.0
 require (
 	github.com/stretchr/testify v1.11.1
 	sigs.k8s.io/kustomize/api v0.21.1
-	sigs.k8s.io/kustomize/kyaml v0.21.1
+	sigs.k8s.io/kustomize/kyaml v0.22.5
 	sigs.k8s.io/yaml v1.5.0
 )
 
@@ -41,5 +41,3 @@ require (
 )
 
 replace sigs.k8s.io/kustomize/api => ../../../api
-
-replace sigs.k8s.io/kustomize/kyaml => ../../../kyaml
