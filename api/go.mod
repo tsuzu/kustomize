@@ -10,7 +10,7 @@ require (
 	go.yaml.in/yaml/v2 v2.4.2
 	gopkg.in/evanphx/json-patch.v4 v4.13.0
 	k8s.io/kube-openapi v0.0.0-20260502001324-b7f5293f4787
-	sigs.k8s.io/kustomize/kyaml v0.21.1
+	sigs.k8s.io/kustomize/kyaml v0.22.4
 	sigs.k8s.io/yaml v1.5.0
 )
 
@@ -40,5 +40,3 @@ require (
 	google.golang.org/protobuf v1.36.11 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
-
-replace sigs.k8s.io/kustomize/kyaml => ../kyaml

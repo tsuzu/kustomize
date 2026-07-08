@@ -34,10 +34,8 @@ require (
 	gopkg.in/evanphx/json-patch.v4 v4.13.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20260502001324-b7f5293f4787 // indirect
-	sigs.k8s.io/kustomize/kyaml v0.21.1 // indirect
+	sigs.k8s.io/kustomize/kyaml v0.22.4 // indirect
 	sigs.k8s.io/yaml v1.5.0 // indirect
 )
 
 replace sigs.k8s.io/kustomize/api => ../../../../api
-
-replace sigs.k8s.io/kustomize/kyaml => ../../../../kyaml
