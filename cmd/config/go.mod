@@ -7,7 +7,7 @@ require (
 	github.com/spf13/cobra v1.10.2
 	github.com/stretchr/testify v1.11.1
 	gopkg.in/inf.v0 v0.9.1
-	sigs.k8s.io/kustomize/kyaml v0.21.1
+	sigs.k8s.io/kustomize/kyaml v0.22.3
 )
 
 require (
@@ -41,5 +41,3 @@ require (
 	k8s.io/kube-openapi v0.0.0-20260502001324-b7f5293f4787 // indirect
 	sigs.k8s.io/yaml v1.5.0 // indirect
 )
-
-replace sigs.k8s.io/kustomize/kyaml => ../../kyaml

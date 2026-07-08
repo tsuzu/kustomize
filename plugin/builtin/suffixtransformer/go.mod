@@ -4,7 +4,7 @@ go 1.25.0
 
 require (
 	sigs.k8s.io/kustomize/api v0.21.1
-	sigs.k8s.io/kustomize/kyaml v0.21.1
+	sigs.k8s.io/kustomize/kyaml v0.22.3
 )
 
 require (
@@ -41,5 +41,3 @@ require (
 )
 
 replace sigs.k8s.io/kustomize/api => ../../../api
-
-replace sigs.k8s.io/kustomize/kyaml => ../../../kyaml
