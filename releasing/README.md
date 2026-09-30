@@ -111,6 +111,27 @@ releasing/release-all.sh \
 
 Without `--do-it`, the script runs in dry-run mode and prints the commands it would run. Add `--do-it` to create the release branch, push tags, push the final branch, and open the PR.
 
+The automation releases from `upstream/master`; it requires an `upstream` remote and does not support selecting a different remote or base branch.
+
+If a run fails after the release branch has been pushed, resume it with the
+target versions printed by the original invocation. Resume uses the standard
+branch name `release-$KUSTOMIZE_VERSION`:
+
+```bash
+releasing/release-all.sh \
+  --module-bump patch \
+  --kustomize-bump patch \
+  --branch release-vX.Y.Z \
+  --module-version vX.Y.Z \
+  --kustomize-version vX.Y.Z \
+  --resume --do-it
+```
+
+Resume skips an existing tag only when that tag is an ancestor of the release
+branch. It never deletes or replaces a tag. If a pushed tag is wrong, stop the
+run and plan a corrective release with the release owners instead of resuming.
+Custom `--branch` values are supported for a new run, but cannot be resumed.
+
 The script does not decide the semver bumps for you, review changelogs, or undraft GitHub releases. Major releases are not supported by the script; use the manual flow below.
 
 <details>
