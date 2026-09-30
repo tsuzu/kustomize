@@ -80,11 +80,10 @@ If the existing version is _v1.2.7_, then the new version will be:
  - `minor` -> _v1.3.0_
  - `major` -> _v2.0.0_
 
-After establishing the version, the command looks for a branch named
+After establishing the version, the command uses the branch supplied with
+`--release-branch`.
 
-> _release-v{major}.{minor}.{patch}_
-
-If the branch doesn't exist, the command creates it and pushes it to the remote.
+If that branch doesn't exist, the command creates it and pushes it to the remote.
 
 The command then creates a new tag in the form
 
