@@ -2,7 +2,7 @@ module sigs.k8s.io/kustomize/plugin/someteam.example.com/v1/printpluginenv
 
 go 1.25.0
 
-require sigs.k8s.io/kustomize/api v0.21.1
+require sigs.k8s.io/kustomize/api v0.22.5
 
 require (
 	github.com/blang/semver/v4 v4.0.0 // indirect
@@ -37,5 +37,3 @@ require (
 	sigs.k8s.io/kustomize/kyaml v0.22.5 // indirect
 	sigs.k8s.io/yaml v1.5.0 // indirect
 )
-
-replace sigs.k8s.io/kustomize/api => ../../../../api
